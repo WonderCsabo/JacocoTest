@@ -1,0 +1,83 @@
+buildscript {
+    ext.kotlin_version = "1.4.10"
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:4.2.0-alpha13"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.6"
+    reportsDir = file("${buildDir}/reports")
+}
+
+tasks.register("unitJacocoRootReport", JacocoReport) {
+    onlyIf { true }
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    def jacocoTasks = subprojects
+            .collect { it.tasks.withType(JacocoReport) }
+            .flatten()
+            .findAll { it.name.contains("Unit") }
+
+    def srcDirs = files(jacocoTasks.collect { it.sourceDirectories }.flatten())
+    def classDirs = files(jacocoTasks.collect { it.classDirectories }.flatten())
+
+    sourceDirectories.setFrom(srcDirs)
+    additionalSourceDirs.setFrom(srcDirs)
+
+    classDirectories.setFrom(classDirs)
+
+    executionData.setFrom(project.fileTree(project.rootDir.absolutePath)
+            .include("**/build/jacoco/*.exec"))
+
+    dependsOn(jacocoTasks)
+}
+
+tasks.register("connectedJacocoRootReport", JacocoReport) {
+    onlyIf { true }
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    def jacocoTasks = subprojects
+            .collect { it.tasks.withType(JacocoReport) }
+            .flatten()
+            .findAll { it.name.contains("connected") }
+
+    def srcDirs = files(jacocoTasks.collect { it.sourceDirectories }.flatten())
+    def classDirs = files(jacocoTasks.collect { it.classDirectories }.flatten())
+
+    sourceDirectories.setFrom(srcDirs)
+    additionalSourceDirs.setFrom(srcDirs)
+
+    classDirectories.setFrom(classDirs)
+
+    executionData.setFrom(project.fileTree(project.rootDir.absolutePath)
+            .include("**/build/outputs/code_coverage/*AndroidTest/connected/*coverage.ec"))
+
+    dependsOn(jacocoTasks)
+}
